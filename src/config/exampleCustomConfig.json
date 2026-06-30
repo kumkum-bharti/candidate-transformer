@@ -1,0 +1,28 @@
+{
+  "fields": {
+    "full_name": { 
+      "from": "full_name", 
+      "type": "string", 
+      "required": true 
+    },
+    "primary_email": { 
+      "from": "emails[0]", 
+      "type": "string", 
+      "required": true 
+    },
+    "phone": { 
+      "from": "phones[0]", 
+      "type": "string", 
+      "required": false,
+      "normalize": "E164" 
+    },
+    "skills": { 
+      "from": "skills[].name", 
+      "type": "array", 
+      "required": false,
+      "normalize": "canonical" 
+    }
+  },
+  "include_confidence": true,
+  "on_missing": "null"
+}
