@@ -1,0 +1,19 @@
+Kumkum Bharti
+kumkum.bharti@example.com | +91 9876543210 | Haldwani, Uttarakhand, India
+linkedin.com/in/kumkum-bharti | github.com/kumkum-bharti
+
+EDUCATION
+National Institute of Technology Uttarakhand
+B.Tech, Computer Science and Engineering, 2023 - 2027
+
+EXPERIENCE
+Research Intern, IIT Roorkee
+2024-06 - 2024-08
+Built Earnn, a peer-to-peer service marketplace app using React Native, Node.js, MongoDB and Razorpay (sandbox mode) for payments.
+
+PROJECTS
+BudgetSync - MERN stack group expense tracker with JWT authentication, bcrypt password hashing, and OCR-based receipt parsing.
+Crop Recommendation System - benchmarked Random Forest, SVM and Naive Bayes classifiers using GridSearchCV.
+
+SKILLS
+JavaScript, Node.js, Express.js, React.js, React Native, MongoDB, Java, C++, Spring Boot (learning)

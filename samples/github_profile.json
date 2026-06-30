@@ -1,0 +1,12 @@
+{
+  "login": "kumkum-bharti",
+  "name": "Kumkum Bharti",
+  "bio": "Pre-final year CSE student | Node.js, React, MongoDB | exploring Spring Boot & ML",
+  "location": "Haldwani, Uttarakhand, India",
+  "blog": "",
+  "repos": [
+    { "name": "earnn", "description": "Peer-to-peer service marketplace built with React Native, Node.js, MongoDB, Razorpay", "language": "JavaScript" },
+    { "name": "budgetsync", "description": "MERN stack group expense tracker with JWT auth and OCR receipt parsing", "language": "JavaScript" },
+    { "name": "crop-recommender", "description": "Crop recommendation system benchmarking Random Forest, SVM and Naive Bayes", "language": "Python" }
+  ]
+}

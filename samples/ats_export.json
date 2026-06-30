@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    {
+      "applicant_name": "Kumkum Bharti",
+      "contact_email": "kumkum.bharti@example.com",
+      "mobile": "+91-98765-43210",
+      "employer": "Eightfold AI (Intern)",
+      "role_applied": "Software Engineering Intern",
+      "loc_city": "Haldwani",
+      "loc_country": "India"
+    },
+    {
+      "applicant_name": "Aarav Shah",
+      "contact_email": "",
+      "mobile": "9123456780",
+      "employer": "Wipro Technologies",
+      "role_applied": "Senior Software Engineer",
+      "loc_city": "Bengaluru",
+      "loc_country": "India"
+    }
+  ]
+}
