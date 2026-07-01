@@ -109,17 +109,6 @@ function deriveSkills(profile: GitHubProfile): string[] {
             }
         }
 
-        const descriptionTokens = (repo.description ?? "")
-            .split(/[^A-Za-z0-9.+#-]+/)
-            .map((token) => token.trim())
-            .filter(Boolean);
-
-        for (const token of descriptionTokens) {
-            if (token.length >= 3 && /[A-Za-z]/.test(token)) {
-                discovered.add(token);
-            }
-        }
-
         if (repo.language) {
             discovered.add(repo.language);
         }

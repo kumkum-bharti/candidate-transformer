@@ -194,7 +194,7 @@ function extractExperience(text: string): Array<Record<string, string | null>> {
         }
 
         if (secondLine && /\d{4}/.test(secondLine)) {
-            const dateParts = secondLine.split(/\s*-\s*/).map((part) => part.trim()).filter(Boolean);
+            const dateParts = secondLine.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean);
             entry.start = dateParts[0] ?? null;
             entry.end = dateParts[1] ?? null;
             entry.summary = rest.join(" ").trim() || null;

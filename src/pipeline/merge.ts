@@ -8,7 +8,7 @@ import {
     SkillEntry,
     SourceName,
 } from "../types";
-import { canonicalizeSkill, normalizePhone } from "./normalize";
+import { canonicalizeSkill, normalizeCountry, normalizePhone } from "./normalize";
 
 type CandidateMatch = {
     key: string;
@@ -102,6 +102,11 @@ function mergeStrings(field: string, candidates: { value: unknown; source: Sourc
     const values = candidates.map((candidate) => toStringValue(candidate.value).trim()).filter(Boolean);
     if (values.length === 0) {
         return { value: null };
+    }
+
+    const uniqueValues = [...new Set(candidates.map((candidate) => toStringValue(candidate.value).trim().toLowerCase()).filter(Boolean))];
+    if (uniqueValues.length === 1) {
+        return { value: toStringValue(candidates[0].value).trim() };
     }
 
     const winnerIndex = policy === "structured"
@@ -232,6 +237,7 @@ function mergeLocation(candidates: { value: unknown; source: SourceName }[]): Me
             region: typeof loc.region === "string" && loc.region.trim() ? loc.region.trim() : null,
             country: typeof loc.country === "string" && loc.country.trim() ? loc.country.trim() : null,
         };
+        value.country = normalizeCountry(value.country ?? "") ?? value.country;
 
         const rejected = candidates.filter((c) => c !== objectCandidate && toStringValue(c.value).trim());
         if (rejected.length === 0) {
@@ -365,56 +371,60 @@ function addCandidateField(candidate: CandidateMatch[], field: ExtractedField): 
 
 export function matchCandidates(allExtractedFields: ExtractedField[][]): Map<string, ExtractedField[]> {
     const groups = new Map<string, ExtractedField[]>();
-    const recordToCanonicalKey = new Map<string, string>();
-    const recordsList: { sourceKey: string; fields: ExtractedField[] }[] = [];
 
     for (const sourceFields of allExtractedFields) {
-        const byRecord = new Map<string, ExtractedField[]>();
+        const byRecord = new Map<number, ExtractedField[]>();
         for (const f of sourceFields) {
-            const recordKey = `${f.source}-${f.recordIndex}`;
+            const recordKey = f.recordIndex ?? 0;
             const arr = byRecord.get(recordKey) ?? [];
             arr.push(f);
             byRecord.set(recordKey, arr);
         }
 
-        for (const [recordKey, recordFields] of byRecord.entries()) {
-            recordsList.push({ sourceKey: recordKey, fields: recordFields });
+        for (const recordFields of byRecord.values()) {
+            const emailField = recordFields.find((f) => f.field === "emails" && firstStringFromValue(f.value).trim());
+            const nameField = recordFields.find((f) => f.field === "full_name" && firstStringFromValue(f.value).trim());
+            const phoneField = recordFields.find((f) => f.field === "phones" && firstStringFromValue(f.value).trim());
 
-            const emailField = recordFields.find((f) => f.field === "emails" && toStringValue(f.value).trim());
-            const nameField = recordFields.find((f) => f.field === "full_name" && toStringValue(f.value).trim());
-            const phoneField = recordFields.find((f) => f.field === "phones" && toStringValue(f.value).trim());
+            const recordEmail = normalizeEmail(emailField?.value);
+            const recordName = normalizeName(nameField?.value);
+            const recordPhone = phoneField
+                ? normalizePhone(firstStringFromValue(phoneField.value), "IN").trim()
+                : "";
 
-            let canonicalKey = normalizeEmail(emailField?.value);
-            if (!canonicalKey) {
-                const name = normalizeName(nameField?.value);
-                const phone = phoneField ? normalizePhone(toStringValue(phoneField.value), "IN").trim() : "";
-                if (name && phone) {
-                    canonicalKey = `${name}|${phone}`;
+            let key: string;
+
+            if (recordEmail) {
+                const nameMatchKey = [...groups.keys()].find((k) =>
+                    !k.includes("@") &&
+                    groups.get(k)?.some((f) => f.field === "full_name" && normalizeName(f.value) === recordName)
+                );
+                if (nameMatchKey) {
+                    const existing = groups.get(nameMatchKey)!;
+                    groups.delete(nameMatchKey);
+                    groups.set(recordEmail, existing);
                 }
+                key = recordEmail;
+            } else if (recordName && recordPhone) {
+                const emailMatchKey = [...groups.keys()].find((k) =>
+                    k.includes("@") &&
+                    groups.get(k)?.some((f) => f.field === "full_name" && normalizeName(f.value) === recordName)
+                );
+                key = emailMatchKey ?? `${recordName}|${recordPhone}`;
+            } else if (recordName) {
+                const existingKey = [...groups.keys()].find((k) =>
+                    groups.get(k)?.some((f) => f.field === "full_name" && normalizeName(f.value) === recordName)
+                );
+                key = existingKey ?? recordName;
+            } else {
+                key = `unknown-${groups.size}`;
             }
 
-            if (canonicalKey) {
-                recordToCanonicalKey.set(recordKey, canonicalKey);
-            }
+            const existing = groups.get(key) ?? [];
+            groups.set(key, existing.concat(recordFields));
         }
     }
 
-    let standaloneCounter = 0;
-    for (const record of recordsList) {
-        let key = recordToCanonicalKey.get(record.sourceKey);
-        if (!key) {
-            const emailField = record.fields.find((f) => f.field === "emails" && toStringValue(f.value).trim());
-            key = normalizeEmail(emailField?.value);
-            if (!key) {
-                const nameField = record.fields.find((f) => f.field === "full_name" && toStringValue(f.value).trim());
-                const name = normalizeName(nameField?.value);
-                key = name ? name : `isolated-candidate-${standaloneCounter++}`;
-            }
-        }
-
-        const existing = groups.get(key) ?? [];
-        groups.set(key, existing.concat(record.fields));
-    }
     return groups;
 }
 
@@ -426,10 +436,10 @@ function mergeCandidateFields(fields: ExtractedField[]): CanonicalCandidate {
     const candidate = createEmptyCandidate();
     candidate.candidate_id = buildCandidateId("pending");
 
-    const grouped = new Map<string, { value: unknown; source: SourceName }[]>();
+    const grouped = new Map<string, { value: unknown; source: SourceName; method: string }[]>();
     for (const field of fields) {
         const list = grouped.get(field.field) ?? [];
-        list.push({ value: field.value, source: field.source });
+        list.push({ value: field.value, source: field.source, method: field.method });
         grouped.set(field.field, list);
     }
 
@@ -437,6 +447,11 @@ function mergeCandidateFields(fields: ExtractedField[]): CanonicalCandidate {
         const result = mergeField(field, records);
         addConflict(candidate, result.conflict);
         applyField(candidate, field, result.value);
+        candidate.provenance.push({
+            field,
+            source: records.length === 1 ? records[0].source : (records.map((record) => record.source) as SourceName[]),
+            method: records[0].method,
+        });
     }
     return candidate;
 }
@@ -460,10 +475,10 @@ export function mergeNewSource(existing: CanonicalCandidate, newFields: Extracte
         _degraded: existing._degraded,
     };
 
-    const grouped = new Map<string, { value: unknown; source: SourceName }[]>();
+    const grouped = new Map<string, { value: unknown; source: SourceName; method: string }[]>();
     for (const field of newFields) {
         const list = grouped.get(field.field) ?? [];
-        list.push({ value: field.value, source: field.source });
+        list.push({ value: field.value, source: field.source, method: field.method });
         grouped.set(field.field, list);
     }
 
@@ -471,6 +486,11 @@ export function mergeNewSource(existing: CanonicalCandidate, newFields: Extracte
         const result = mergeField(field, records);
         addConflict(next, result.conflict);
         applyField(next, field, result.value);
+        next.provenance.push({
+            field,
+            source: records.length === 1 ? records[0].source : (records.map((record) => record.source) as SourceName[]),
+            method: records[0].method,
+        });
     }
 
     next.emails = uniqueStrings(next.emails.map((email) => email.trim().toLowerCase()));
