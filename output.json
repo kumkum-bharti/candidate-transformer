@@ -1,0 +1,224 @@
+[
+  {
+    "id": "kumkum.bharti@example.com",
+    "name": "Kumkum Bharti",
+    "emails": [
+      "kumkum.bharti@example.com"
+    ],
+    "phones": [
+      "+919876543210"
+    ],
+    "current_headline": "Software Engineering Intern",
+    "location_summary": "Haldwani",
+    "total_years_exp": null,
+    "skill_tags": [
+      "JavaScript",
+      "Node.js",
+      "React",
+      "React Native",
+      "MongoDB",
+      "Java",
+      "Razorpay",
+      "Jwt",
+      "Ocr",
+      "Python",
+      "Rest",
+      "Express.js",
+      "Express",
+      "C++",
+      "Spring Boot"
+    ],
+    "work_history": [
+      {
+        "company": "NIT Uttarakhand",
+        "title": "Student",
+        "start": null,
+        "end": null,
+        "summary": null
+      },
+      {
+        "company": "Eightfold AI (Intern)",
+        "title": "Software Engineering Intern",
+        "start": null,
+        "end": null,
+        "summary": null
+      },
+      {
+        "company": "IIT Roorkee",
+        "title": "Research Intern",
+        "start": "2024-06",
+        "end": "2024-08",
+        "summary": "Built Earnn, a peer-to-peer service marketplace app using React Native, Node.js, MongoDB and Razorpay (sandbox mode) for payments."
+      }
+    ],
+    "_provenance": [
+      {
+        "field": "full_name",
+        "source": [
+          "csv",
+          "ats_json",
+          "github",
+          "resume"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "emails",
+        "source": [
+          "csv",
+          "ats_json",
+          "resume"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "phones",
+        "source": [
+          "csv",
+          "ats_json",
+          "resume"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "experience",
+        "source": [
+          "csv",
+          "ats_json",
+          "resume"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "location",
+        "source": [
+          "ats_json",
+          "github"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "headline",
+        "source": [
+          "ats_json",
+          "github"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "skills",
+        "source": [
+          "github",
+          "resume"
+        ],
+        "method": "derived"
+      },
+      {
+        "field": "links",
+        "source": "resume",
+        "method": "regex_extract"
+      }
+    ],
+    "_confidence": 0.920909090909091,
+    "_conflicts": [
+      {
+        "field": "location",
+        "winningValue": {
+          "city": "Haldwani",
+          "region": null,
+          "country": "IN"
+        },
+        "rejectedValues": [
+          {
+            "value": "Haldwani, Uttarakhand, India",
+            "source": "github"
+          }
+        ],
+        "reason": "Structured location object preferred over free-text location string."
+      },
+      {
+        "field": "headline",
+        "winningValue": "Software Engineering Intern",
+        "rejectedValues": [
+          {
+            "value": "Pre-final year CSE student | Node.js, React, MongoDB | exploring Spring Boot & ML",
+            "source": "github"
+          }
+        ],
+        "reason": "Structured sources are prioritized for identity fields."
+      }
+    ]
+  },
+  {
+    "id": "aarav.shah@example.com",
+    "name": "Aarav Shah",
+    "emails": [
+      "aarav.shah@example.com"
+    ],
+    "phones": [
+      "+919123456780"
+    ],
+    "current_headline": "Senior Software Engineer",
+    "location_summary": "Bengaluru",
+    "total_years_exp": null,
+    "skill_tags": null,
+    "work_history": [
+      {
+        "company": "Wipro",
+        "title": "Software Engineer",
+        "start": null,
+        "end": null,
+        "summary": null
+      },
+      {
+        "company": "Wipro Technologies",
+        "title": "Senior Software Engineer",
+        "start": null,
+        "end": null,
+        "summary": null
+      }
+    ],
+    "_provenance": [
+      {
+        "field": "full_name",
+        "source": [
+          "csv",
+          "ats_json"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "emails",
+        "source": "csv",
+        "method": "direct"
+      },
+      {
+        "field": "phones",
+        "source": [
+          "csv",
+          "ats_json"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "experience",
+        "source": [
+          "csv",
+          "ats_json"
+        ],
+        "method": "direct"
+      },
+      {
+        "field": "location",
+        "source": "ats_json",
+        "method": "direct"
+      },
+      {
+        "field": "headline",
+        "source": "ats_json",
+        "method": "direct"
+      }
+    ],
+    "_confidence": 0.9572727272727274
+  }
+]
