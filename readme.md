@@ -1,24 +1,7 @@
 # Candidate Profile Transformer
 
-A deterministic pipeline that merges candidate data from multiple structured and unstructured sources (Recruiter CSV, ATS JSON, GitHub profiles, Resumes) into one clean, confidence-scored, fully-traceable candidate record.
-
-Built for the Eightfold Engineering Intern assignment.
-
-## Project Structure
-
-```
-src/
-├── adapters/         Source-specific parsers (CSV, ATS JSON, GitHub, Resume)
-│   └── registry.ts   Central adapter registration point
-├── config/           Default output schema + example custom projection config
-├── pipeline/
-│   ├── normalize.ts  Phone/date/country/skill normalization
-│   ├── merge.ts       Candidate matching, conflict resolution, confidence scoring
-│   ├── project.ts     Runtime config-driven output projection
-│   ├── validate.ts    Output schema validation
-│   └── index.ts       Pipeline orchestration
-└── cli.ts             Command-line entry point
-```
+Merges candidate data from multiple sources (Recruiter CSV, ATS JSON, GitHub, Resume) 
+into one clean, confidence-scored, traceable record per candidate.
 
 ## Setup
 
@@ -26,57 +9,110 @@ Requires Node.js 18+.
 
 ```bash
 npm install
-npm run build
 ```
 
-## Usage
+## Running the Pipeline
 
-**Default output:**
+**Default output (all four sources):**
 ```bash
-npx ts-node src/cli.ts --csv samples/recruiter_export.csv --ats samples/ats_export.json --github samples/github_profile.json --resume samples/resume_kumkum.txt --explain
+npx ts-node src/cli.ts \
+  --csv samples/recruiter_export.csv \
+  --ats samples/ats_export.json \
+  --github samples/github_profile.json \
+  --resume samples/resume_kumkum.txt \
+  --explain
 ```
 
 **Custom config output:**
 ```bash
-npx ts-node src/cli.ts --csv samples/recruiter_export.csv --ats samples/ats_export.json --config src/config/exampleCustomConfig.json
+npx ts-node src/cli.ts \
+  --csv samples/recruiter_export.csv \
+  --ats samples/ats_export.json \
+  --config src/config/exampleCustomConfig.json
 ```
+
+**Flags:**
 
 | Flag | Description |
 |---|---|
-| `--csv <path>` | Recruiter CSV export |
-| `--ats <path>` | ATS JSON export |
-| `--github <path-or-username>` | Local fixture or live GitHub username |
-| `--resume <path>` | Resume file (.txt / .pdf / .docx) |
-| `--config <path>` | Custom projection config (defaults to the full canonical schema) |
-| `--explain` | Includes the internal conflict log in output |
-| `--out <path>` | Writes output to a file instead of stdout |
+| `--csv` | Recruiter CSV export path |
+| `--ats` | ATS JSON export path |
+| `--github` | Local fixture (.json) or live GitHub username |
+| `--resume` | Resume file (.txt / .pdf / .docx) |
+| `--config` | Custom projection config JSON (optional) |
+| `--explain` | Appends conflict audit log to output |
+| `--out` | Write output to file instead of stdout |
 
-## Tests
+## Running Tests
 
 ```bash
 npx vitest run
 ```
 
-Covers normalization functions, the conflict-resolution policy (including the CSV-vs-ATS `current_company` conflict case), and a full pipeline integration run against the sample inputs.
+Covers phone/date/skill normalization, the CSV-vs-ATS conflict resolution case, 
+and a full pipeline integration run against the sample inputs.
 
-## Design Decisions
+## Adding a New Source
 
-**Source adapters.** Each source implements a single `extract()` function and self-registers in `registry.ts`. Every later pipeline stage only ever consumes the common `ExtractedField` shape — never raw CSV rows, JSON keys, or PDF text. Adding a new source means writing one adapter file, with no changes elsewhere in the pipeline.
+Each source is a self-contained adapter implementing one function:
 
-**Conflict resolution.** Identity fields (name, title, company) are resolved in favor of structured sources (CSV, ATS), since that data is typically HR-verified. Skills are resolved in favor of unstructured sources (resume, GitHub), since those carry the real skill signal. List fields (emails, phones, links) are unioned and deduplicated rather than picking a single winner. Every override is recorded in an internal conflict log (visible via `--explain`), so no resolved value is silently irreversible.
+```typescript
+export const myAdapter: SourceAdapter = {
+  name: "my_source",
+  extract(rawInput: unknown): ExtractedField[] {
+    // parse rawInput, return one ExtractedField per value found
+    // catch all errors internally and return [] instead of throwing
+  }
+};
+```
 
-**Identity matching.** Candidates are matched primarily by lowercased, trimmed email. If email is missing or inconsistent, the matcher falls back to normalized full name + phone — a stated scope limitation, not a guarantee against false matches.
+Register it in `src/adapters/registry.ts` and pass it to the CLI via a new flag.
+Nothing else in the pipeline changes — normalize, merge, project, and validate 
+are all source-agnostic.
 
-**Config-driven projection.** The internal canonical record is always fully populated and never mutated. A separate projection step applies the runtime config (field selection, renaming, per-field normalization, provenance/confidence toggles, missing-value behavior) to a copy of the record before validation.
+## Custom Config Format
+
+```json
+{
+  "fields": [
+    { "path": "full_name", "type": "string", "required": true },
+    { "path": "primary_email", "from": "emails[0]", "type": "string", "required": true },
+    { "path": "phone", "from": "phones[0]", "type": "string", "normalize": "E164" },
+    { "path": "skills", "from": "skills[].name", "type": "string[]", "normalize": "canonical" }
+  ],
+  "include_confidence": true,
+  "on_missing": "null"
+}
+```
+
+`from` remaps a canonical field to a different output path. `on_missing` controls 
+behavior when a value is absent: `null`, `omit`, or `error`.
+
+One implementation note: parsing wildcard paths like `skills[].name` required writing 
+a small custom path evaluator — using a full JSONPath library felt like overkill for 
+this scope but the edge cases (nested arrays, mixed null values) were genuinely fiddly 
+to handle cleanly. Config files are pure JSON rather than TypeScript modules; 
+dynamically importing `.ts` configs caused transpilation and path resolution issues 
+on Windows that JSON + Zod validation sidesteps entirely.
 
 ## Edge Cases Handled
 
-- Missing/conflicting email across sources → falls back to name+phone match, lower confidence
-- Corrupted or unreadable resume → adapter returns no fields, pipeline continues with remaining sources
-- Conflicting `current_company` between CSV and ATS → resolved via priority policy, both values retained in the conflict log
-- Same skill written differently across sources → canonicalized via alias map into a single entry
-- Candidate present in only one source → confidence reflects single-source uncertainty
+- Email missing or inconsistent across sources → falls back to name+phone as match key; 
+  confidence is lower on that candidate. Note: this can incorrectly merge two people 
+  with the same name and phone — acceptable for this scope, called out explicitly.
+- Corrupted or unreadable resume → adapter returns `[]`, pipeline continues with 
+  remaining sources.
+- Conflicting `current_company` between CSV and ATS → CSV/ATS win for identity fields 
+  (usually HR-verified data); resume/GitHub win for skills (richer signal). 
+  Both values are kept in the conflict log, visible via `--explain`.
+- Same skill in different forms across sources ("JS", "javascript") → collapsed into 
+  one canonical entry via alias map; confidence is combined not duplicated.
+- Candidate in only one source → confidence reflects single-source uncertainty 
+  rather than defaulting high.
 
-## Out of Scope
+## Assumptions and Out of Scope
 
-Fuzzy/ML-based identity resolution, persistent storage, confidence decay by data age, and large-scale dedup optimization beyond a few thousand candidates. Left out deliberately under the assignment's time constraints.
+- Match key assumes email is unique per candidate. No fuzzy/ML-based name matching.
+- No persistent storage — each pipeline run is stateless.
+- Confidence decay by data age not implemented (no reliable timestamp in sample data).
+- Not optimized for truly large-scale dedup beyond a few thousand records.
