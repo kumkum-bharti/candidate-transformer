@@ -15,20 +15,20 @@ npm install
 
 **Default output (all four sources):**
 ```bash
-npx ts-node src/cli.ts \
-  --csv samples/recruiter_export.csv \
-  --ats samples/ats_export.json \
-  --github samples/github_profile.json \
-  --resume samples/resume_kumkum.txt \
-  --explain
+npx ts-node src/cli.ts --csv samples/recruiter_export.csv --ats samples/ats_export.json --github samples/github_profile.json --resume samples/resume_kumkum.txt --explain --out output.json
+
 ```
 
 **Custom config output:**
 ```bash
-npx ts-node src/cli.ts \
-  --csv samples/recruiter_export.csv \
-  --ats samples/ats_export.json \
-  --config src/config/exampleCustomConfig.json
+npx ts-node src/cli.ts --csv samples/recruiter_export.csv --ats samples/ats_export.json --config src/config/exampleCustomConfig.json
+
+```
+
+**Custom config with all sources:**
+```bash
+npx ts-node src/cli.ts --csv samples/recruiter_export.csv --ats samples/ats_export.json --github samples/github_profile.json --resume samples/resume_kumkum.txt --config src/config/exampleCustomConfig.json --explain
+
 ```
 
 **Flags:**
@@ -74,18 +74,20 @@ are all source-agnostic.
 
 ```json
 {
-  "fields": [
-    { "path": "full_name", "type": "string", "required": true },
-    { "path": "primary_email", "from": "emails[0]", "type": "string", "required": true },
-    { "path": "phone", "from": "phones[0]", "type": "string", "normalize": "E164" },
-    { "path": "skills", "from": "skills[].name", "type": "string[]", "normalize": "canonical" }
-  ],
+  "fields": {
+    "full_name": { "from": "full_name", "type": "string", "required": true },
+    "primary_email": { "from": "emails[0]", "type": "string", "required": true },
+    "phone": { "from": "phones[0]", "type": "string", "required": false, "normalize": "phone" },
+    "skills": { "from": "skills[].name", "type": "array", "required": false, "normalize": "skill" }
+  },
+  "include_provenance": true,
   "include_confidence": true,
   "on_missing": "null"
 }
 ```
 
-`from` remaps a canonical field to a different output path. `on_missing` controls 
+The runtime schema is defined in [src/config/projectionTypes.ts](src/config/projectionTypes.ts).
+`from` remaps a canonical field to an output path, `normalize` is optional, and `on_missing` controls 
 behavior when a value is absent: `null`, `omit`, or `error`.
 
 One implementation note: parsing wildcard paths like `skills[].name` required writing 
